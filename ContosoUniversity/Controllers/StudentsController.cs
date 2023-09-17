@@ -20,10 +20,23 @@ namespace ContosoUniversity.Controllers
         }
 
         // GET: Students
-        public async Task<IActionResult> Index(string sortOrder, string searchString)
+        public async Task<IActionResult> Index(string sortOrder,
+    string currentFilter,
+    string searchString,
+    int? pageNumber)
         {
+            ViewData["CurrentSort"] = sortOrder;
             ViewData["NameSortParm"] = String.IsNullOrEmpty(sortOrder) ? "name_desc" : "";
             ViewData["DateSortParm"] = sortOrder == "Date" ? "date_desc" : "Date";
+
+            if (searchString != null)
+            {
+                pageNumber = 1;
+            }
+            else
+            {
+                searchString = currentFilter;
+            }
             ViewData["CurrentFilter"] = searchString;
             var students = from s in _context.Students
                            select s;
@@ -47,7 +60,8 @@ namespace ContosoUniversity.Controllers
                     students = students.OrderBy(s => s.LastName);
                     break;
             }
-            return View(await students.AsNoTracking().ToListAsync());
+            int pageSize = 3;
+            return View(await PaginatedList<Student>.CreateAsync(students.AsNoTracking(), pageNumber ?? 1, pageSize));
         }
 
         // GET: Students/Details/5
@@ -57,7 +71,7 @@ namespace ContosoUniversity.Controllers
             {
                 return NotFound();
             }
-                //the action method for the Details view uses the FirstOrDefaultAsync method to retrieve a single Student entity
+            //the action method for the Details view uses the FirstOrDefaultAsync method to retrieve a single Student entity
             var student = await _context.Students
             .Include(s => s.Enrollments)
             .ThenInclude(e => e.Course)
@@ -184,7 +198,7 @@ namespace ContosoUniversity.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            
+
             var student = await _context.Students.FindAsync(id);
             if (student == null)
             {
@@ -205,7 +219,7 @@ namespace ContosoUniversity.Controllers
 
         private bool StudentExists(int id)
         {
-          return (_context.Students?.Any(e => e.ID == id)).GetValueOrDefault();
+            return (_context.Students?.Any(e => e.ID == id)).GetValueOrDefault();
         }
     }
 }
